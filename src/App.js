@@ -19,17 +19,23 @@ function App() {
 
   const loadItems = async () => {
       setLoad(true);
-      const data = await fetch(`${url}playlists/featured${apikey}limit=1&offset=${offset}`)
+      const data = await fetch(`${url}playlists/top${apikey}limit=1&offset=${offset}&range=day`)
       .then(res => res.json()).then(res => res.playlists[0]);
-      const track = await fetch(`${url}playlists/${data.id}/tracks${apikey}limit=100`)
-      .then(res => res.json()).then(res => res.tracks);
-      setItems({playlist: data, track: track.filter(item => item.previewURL)});
-      setLoad(false);
-      console.log({playlist: data, track: track});
+      if (data) {
+        const track = await fetch(`${url}playlists/${data.id}/tracks${apikey}limit=100`)
+        .then(res => res.json()).then(res => res.tracks);
+        setItems({playlist: data, track: track.filter(item => item.previewURL)});
+        setLoad(false);
+        console.log({playlist: data, track: track});
+      } else {
+        setOffset(offset+1);
+      }
   } 
 
   useEffect(() => {
-    current && audioEl.current.play()
+    current 
+    ? audioEl.current.play()
+    : audioEl.current.pause()
   }, [current]);
 
   const chooseTrack = (i) => {
@@ -39,12 +45,15 @@ function App() {
   }
 
   const playPlaylist = () => {
-    current 
-    ? audioEl.current.play()
-    : chooseTrack(0)
+    !current 
+    ? chooseTrack(0)
+    : play 
+    ? audioEl.current.pause() 
+    : audioEl.current.play()
   }
 
   const changePlaylist = () => {
+    !load &&
     setOffset(offset+1);
     setCurrent();
   }
@@ -56,8 +65,8 @@ function App() {
       onPlay={() => setPlay(true)} onPause={() => setPlay(false)} />
       {items &&
         <div className="max-w-7xl mx-auto">
-          <Header playlist={items.playlist} total={items.track.length} audioEl={audioEl} 
-          play={play} playPlaylist={playPlaylist} changePlaylist={changePlaylist} load={load} />
+          <Header playlist={items.playlist} total={items.track.length} playPlaylist={playPlaylist} 
+          play={play} changePlaylist={changePlaylist} />
           <Track items={items.track} chooseTrack={chooseTrack} current={current} play={play} />
         </div>
       }
